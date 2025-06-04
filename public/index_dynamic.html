@@ -298,9 +298,21 @@
   
   let isDev = false;
   const editBtn = document.createElement('button');
-  editBtn.textContent = '🛠 Enter Edit Mode';
-  editBtn.className = 'btn';
-  editBtn.style = 'position:fixed;top:1rem;right:1rem;z-index:1000;';
+editBtn.textContent = '🛠 Enter Edit Mode';
+editBtn.style.cssText = `
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  background: #f9e79f;
+  color: #000;
+  font-weight: bold;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+`;
   editBtn.onclick = () => {
     const password = prompt("Enter dev password to enable editing:");
     if (password === "admin123") {
