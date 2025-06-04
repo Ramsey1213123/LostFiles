@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lost Files - Playboi Carti</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0a0a;
+      color: rgba(180, 180, 180, 0.9);
+      overflow-x: hidden;
+      position: relative;
+    }
+    a {
+      color: rgba(180, 180, 180, 0.9);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    #node-background {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      user-select: none;
+      background: #0a0a0a;
+    }
+    main {
+      margin-left: 0;
+      padding: 2rem 2rem 4rem;
+      
+      position: relative;
+      z-index: 10;
+    }
+    .explore-albums-title {
+      font-size: 2.3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: rgba(180, 180, 180, 0.9);
+      letter-spacing: 0.04em;
+    }
+    .artist-section h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid rgba(180, 180, 180, 0.6);
+      padding-bottom: 6px;
+      letter-spacing: 0.07em;
+      color: rgba(180, 180, 180, 0.9);
+    }
+    .albums-row {
+      display: flex;
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+    .album-card {
+      flex: 0 0 180px;
+      background: rgba(40,40,40,0.4);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(180, 180, 180, 0.3);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .album-card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(180, 180, 180, 0.5);
+      background: rgba(40,40,40,0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .album-cover {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-bottom: 1px solid rgba(255 255 255 / 0.1);
+    }
+    .album-info {
+      padding: 0.75rem 1rem;
+      color: rgba(180, 180, 180, 0.9);
+    }
+    .album-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin: 0 0 0.2rem 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .album-year {
+      font-size: 0.875rem;
+      opacity: 0.7;
+    }
+
+    @media (max-width: 600px) {
+      main { margin-left: 60px; }
+      .album-card { flex: 0 0 140px; }
+    }
+  
+    .group-box {
+      background: rgba(30, 30, 30, 0.3);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 3rem;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.08);
+    }
+
+    .group-title {
+      font-size: 2.1rem;
+      font-weight: bold;
+      color: #f9e79f;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.06em;
+    }
+
+    .albums-row {
+      overflow: visible;
+    }
+
+    </style>
+    
+</head>
+<body>
+  <canvas id="node-background"></canvas>
+  <main>
+    <h1 class="explore-albums-title">Explore Albums</h1>
+    <div id="album-sections"></div>
+  </main>
+  <script>
+    const artistGroups = {
+      "OPIUM": ["playboi-carti", "ken-carson", "destroy-lonely"],
+      "CACTUS JACK": ["travis-scott", "don-toliver", "sheck-wes", "sofaygo"],
+      "OTHERS": ["kanye-west", "future", "young-thug"],
+      "UNDERGROUND": ["nettspend", "osamason", "untiljapan"]
+    };
+
+    const displayNames = {
+      "playboi-carti": "Playboi Carti",
+      "ken-carson": "Ken Carson",
+      "destroy-lonely": "Destroy Lonely",
+      "travis-scott": "Travis Scott",
+      "don-toliver": "Don Toliver",
+      "sheck-wes": "Sheck Wes",
+      "sofaygo": "Sofaygo",
+      "kanye-west": "Kanye West",
+      "future": "Future",
+      "young-thug": "Young Thug",
+      "nettspend": "Nettspend",
+      "osamason": "Osamason",
+      "untiljapan": "UntilJapan"
+    };
+
+    const albumContainer = document.getElementById('album-sections');
+    const sampleImg = "https://via.placeholder.com/300x300.png?text=Album+Cover";
+
+    for (const [groupName, artistIds] of Object.entries(artistGroups)) {
+      const groupBox = document.createElement('div');
+      groupBox.className = 'group-box';
+
+      const groupTitle = document.createElement('h2');
+      groupTitle.className = 'group-title';
+      groupTitle.textContent = groupName;
+      groupBox.appendChild(groupTitle);
+
+      artistIds.forEach(id => {
+        const section = document.createElement('section');
+        section.classList.add('artist-section');
+        section.id = id;
+
+        const heading = document.createElement('h2');
+        heading.textContent = displayNames[id];
+
+        const row = document.createElement('div');
+        row.classList.add('albums-row');
+
+        for (let i = 0; i < 4; i++) {
+          const card = document.createElement('article');
+          card.classList.add('album-card');
+          card.tabIndex = 0;
+
+          const img = document.createElement('img');
+          img.className = 'album-cover';
+          img.src = sampleImg;
+          img.alt = 'Album Cover';
+
+          const info = document.createElement('div');
+          info.className = 'album-info';
+
+          const title = document.createElement('h3');
+          title.className = 'album-title';
+          title.textContent = "";
+
+          const year = document.createElement('p');
+          year.className = 'album-year';
+          year.textContent = "";
+
+          info.appendChild(title);
+          info.appendChild(year);
+          card.appendChild(img);
+          card.appendChild(info);
+          row.appendChild(card);
+        }
+
+        section.appendChild(heading);
+        section.appendChild(row);
+        groupBox.appendChild(section);
+      });
+
+      albumContainer.appendChild(groupBox);
+    }
+
+  </script>
+
+<script>
+  const canvas = document.getElementById("node-background");
+  const ctx = canvas.getContext("2d");
+  let nodes = [];
+  let w, h;
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+
+  window.addEventListener("resize", resize);
+  resize();
+
+  for (let i = 0; i < 100; i++) {
+    nodes.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, 2, 0, 2 * Math.PI);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.fill();
+
+      for (let j = i + 1; j < nodes.length; j++) {
+        const n2 = nodes[j];
+        const dist = Math.hypot(n.x - n2.x, n.y - n2.y);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(n.x, n.y);
+          ctx.lineTo(n2.x, n2.y);
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+          ctx.stroke();
+        }
+      }
+
+      n.x += n.vx;
+      n.y += n.vy;
+
+      if (n.x < 0 || n.x > w) n.vx *= -1;
+      if (n.y < 0 || n.y > h) n.vy *= -1;
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+</script>
+
+
+<script>
+  document.querySelectorAll(');
+      }
+    });
+  });
+</script>
+
+
+<script>
+  
+  let isDev = false;
+  const editBtn = document.createElement('button');
+  editBtn.textContent = '🛠 Enter Edit Mode';
+  editBtn.className = 'btn';
+  editBtn.style = 'position:fixed;top:1rem;right:1rem;z-index:1000;';
+  editBtn.onclick = () => {
+    const password = prompt("Enter dev password to enable editing:");
+    if (password === "admin123") {
+      isDev = true;
+      alert("Edit mode activated");
+      editBtn.remove();
+      loadAlbums(); // reload with edit tools
+    } else {
+      alert("Wrong password.");
+    }
+  };
+  document.body.appendChild(editBtn);
+
+
+  async function loadAlbums() {
+    const res = await fetch('/api/albums');
+    const data = await res.json();
+    const albumContainer = document.getElementById('album-sections');
+    albumContainer.innerHTML = '';
+
+    const grouped = {};
+    data.forEach(album => {
+      const group = album.group || 'OTHERS';
+      if (!grouped[group]) grouped[group] = [];
+      grouped[group].push(album);
+    });
+
+    for (const [groupName, albums] of Object.entries(grouped)) {
+      const groupBox = document.createElement('div');
+      groupBox.className = 'group-box';
+
+      const groupTitle = document.createElement('h2');
+      groupTitle.className = 'group-title';
+      groupTitle.textContent = groupName;
+      groupBox.appendChild(groupTitle);
+
+      const section = document.createElement('section');
+      section.classList.add('artist-section');
+
+      const row = document.createElement('div');
+      row.classList.add('albums-row');
+
+      albums.forEach(album => {
+        const card = document.createElement('article');
+        card.className = 'album-card';
+
+        card.onclick = () => {
+          location.href = \`album_dynamic.html?album=\${encodeURIComponent(album.id)}\`;
+        };
+
+        const img = document.createElement('img');
+        img.className = 'album-cover';
+        img.src = album.image || 'https://via.placeholder.com/300x300.png?text=Album+Cover';
+
+        const info = document.createElement('div');
+        info.className = 'album-info';
+
+        const title = document.createElement('h3');
+        title.className = 'album-title';
+        title.textContent = album.title;
+
+        const year = document.createElement('p');
+        year.className = 'album-year';
+        year.textContent = album.year || '';
+
+        info.appendChild(title);
+        info.appendChild(year);
+        card.appendChild(img);
+        card.appendChild(info);
+        row.appendChild(card);
+      });
+
+      section.appendChild(row);
+      groupBox.appendChild(section);
+      albumContainer.appendChild(groupBox);
+    }
+
+    if (isDev) {
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '+ Add Album';
+      addBtn.className = 'btn';
+      addBtn.onclick = async () => {
+        const id = prompt('Album ID (no spaces):');
+        const title = prompt('Album Title:');
+        const artist = prompt('Artist:');
+        const year = prompt('Year:');
+        const image = prompt('Image URL:');
+        const group = prompt('Group:');
+
+        const res = await fetch('/api/album/' + id, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password,
+            album: { id, title, artist, year, image, group }
+          })
+        });
+
+        if (res.ok) {
+          alert('Album added!');
+          loadAlbums();
+        } else {
+          alert('Failed to save.');
+        }
+      };
+      document.body.appendChild(addBtn);
+    }
+  }
+
+  loadAlbums();
+</script>
+
+</body>
+</html>

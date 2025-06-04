@@ -1,0 +1,279 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Album Page</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0a0a;
+      color: rgba(180, 180, 180, 0.9);
+      overflow-x: hidden;
+      position: relative;
+    }
+    a {
+      color: rgba(255, 255, 255, 0.85);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    #node-background {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      user-select: none;
+    }
+    main {
+      position: relative;
+      z-index: 10;
+      padding: 4rem 2rem;
+      max-width: 1200px;
+      margin: auto;
+    }
+    .album-wrapper {
+      display: flex;
+      gap: 3rem;
+      background: rgba(30, 30, 30, 0.35);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 2.5rem;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
+      flex-wrap: wrap;
+    }
+    .album-info {
+      flex: 1;
+      min-width: 280px;
+    }
+    .album-cover {
+      width: 100%;
+      max-width: 300px;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+    }
+    .album-title {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+    .album-artist {
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+      color: #f9e79f;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 2rem;
+      padding: 0.75rem 1.5rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .tracklist-section {
+      flex: 1;
+      min-width: 280px;
+    }
+    .tracklist-title {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    .tracklist {
+      list-style: decimal;
+      padding-left: 1.5rem;
+    }
+    .tracklist li {
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="node-background"></canvas>
+  <main>
+    <div class="album-wrapper">
+      <div class="album-info">
+        <img src="https://via.placeholder.com/300x300.png?text=Album+Cover" alt="Album Cover" class="album-cover" />
+        <div class="album-title">Album Title</div>
+        <div class="album-artist">Artist Name</div>
+        <a href="#" class="btn">Go to Album</a>
+      </div>
+      <div class="tracklist-section">
+        <div class="tracklist-title">Tracklist</div>
+        <ul class="tracklist">
+          <li>Track 1</li>
+          <li>Track 2</li>
+          <li>Track 3</li>
+          <li>Track 4</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+  <script>
+    const canvas = document.getElementById("node-background");
+    const ctx = canvas.getContext("2d");
+    let nodes = [];
+    let w, h;
+
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+
+    for (let i = 0; i < 100; i++) {
+      nodes.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 2, 0, 2 * Math.PI);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+        ctx.fill();
+
+        for (let j = i + 1; j < nodes.length; j++) {
+          const n2 = nodes[j];
+          const dist = Math.hypot(n.x - n2.x, n.y - n2.y);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(n.x, n.y);
+            ctx.lineTo(n2.x, n2.y);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+            ctx.stroke();
+          }
+        }
+
+        n.x += n.vx;
+        n.y += n.vy;
+
+        if (n.x < 0 || n.x > w) n.vx *= -1;
+        if (n.y < 0 || n.y > h) n.vy *= -1;
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const artist = urlParams.get('artist') || "Unknown Artist";
+    const album = urlParams.get('album') || "Untitled Album";
+
+    document.querySelector('.album-title').textContent = decodeURIComponent(album);
+    document.querySelector('.album-artist').textContent = decodeURIComponent(artist);
+
+    const backLink = document.createElement('a');
+    backLink.href = 'index_dynamic.html';
+    backLink.textContent = '← Back to Albums';
+    backLink.className = 'btn';
+    document.querySelector('.album-wrapper').prepend(backLink);
+
+  
+<script>
+  const canvas = document.getElementById("node-background");
+  const ctx = canvas.getContext("2d");
+  let nodes = [], w, h;
+  function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+  window.addEventListener("resize", resize); resize();
+  for (let i = 0; i < 100; i++) nodes.push({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5 });
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+      ctx.beginPath(); ctx.arc(n.x, n.y, 2, 0, 2 * Math.PI);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.5)"; ctx.fill();
+      for (let j = i + 1; j < nodes.length; j++) {
+        const n2 = nodes[j];
+        const dist = Math.hypot(n.x - n2.x, n.y - n2.y);
+        if (dist < 120) { ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(n2.x, n2.y); ctx.strokeStyle = "rgba(255, 255, 255, 0.1)"; ctx.stroke(); }
+      }
+      n.x += n.vx; n.y += n.vy;
+      if (n.x < 0 || n.x > w) n.vx *= -1;
+      if (n.y < 0 || n.y > h) n.vy *= -1;
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  const params = new URLSearchParams(location.search);
+  const id = params.get('album');
+  const password = prompt("Enter dev password to enable editing (or leave blank):");
+  let isDev = password === "admin123";
+
+  async function loadAlbum() {
+    const res = await fetch('/api/album/' + id);
+    if (!res.ok) return alert("Album not found");
+    const album = await res.json();
+
+    const titleEl = document.querySelector('.album-title');
+    const artistEl = document.querySelector('.album-artist');
+    const imgEl = document.querySelector('.album-cover');
+
+    titleEl.textContent = album.title;
+    artistEl.textContent = album.artist;
+    imgEl.src = album.image;
+
+    if (isDev) {
+      titleEl.contentEditable = true;
+      artistEl.contentEditable = true;
+      imgEl.onclick = () => {
+        const newImg = prompt("Image URL:", imgEl.src);
+        if (newImg) imgEl.src = newImg;
+      };
+
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = '💾 Save';
+      saveBtn.className = 'btn';
+      saveBtn.onclick = async () => {
+        const updated = {
+          id,
+          title: titleEl.textContent,
+          artist: artistEl.textContent,
+          image: imgEl.src
+        };
+        const saveRes = await fetch('/api/album/' + id, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password, album: updated })
+        });
+        if (saveRes.ok) alert('Saved!');
+        else alert('Save failed');
+      };
+      document.body.appendChild(saveBtn);
+    }
+  }
+
+  const backLink = document.createElement('a');
+  backLink.href = 'index_dynamic.html';
+  backLink.textContent = '← Back to Albums';
+  backLink.className = 'btn';
+  document.querySelector('.album-wrapper').prepend(backLink);
+
+  loadAlbum();
+</script>
+</body>
+</html>
