@@ -11,6 +11,10 @@ const PASSWORD = 'admin123';
 
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.get('/', (req, res) => {
+  res.redirect('/index_dynamic.html');
+});
+
 
 // Load all albums
 app.get('/api/albums', (req, res) => {
