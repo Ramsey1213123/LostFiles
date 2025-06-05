@@ -295,7 +295,6 @@
 
 
 <script>
-  
   let isDev = false;
   const editBtn = document.createElement('button');
   editBtn.textContent = '🛠 Enter Edit Mode';
@@ -318,111 +317,12 @@
       isDev = true;
       alert("Edit mode activated");
       editBtn.remove();
-      loadAlbums(); // reload with edit tools
+      if (typeof loadAlbums === 'function') loadAlbums(); // only rerun if it's defined
     } else {
       alert("Wrong password.");
     }
   };
   document.body.appendChild(editBtn);
-
-
-  async function loadAlbums() {
-    const res = await fetch('/api/albums');
-    const data = await res.json();
-    const albumContainer = document.getElementById('album-sections');
-    albumContainer.innerHTML = '';
-
-    const grouped = {};
-    data.forEach(album => {
-      const group = album.group || 'OTHERS';
-      if (!grouped[group]) grouped[group] = [];
-      grouped[group].push(album);
-    });
-
-    for (const [groupName, albums] of Object.entries(grouped)) {
-      const groupBox = document.createElement('div');
-      groupBox.className = 'group-box';
-
-      const groupTitle = document.createElement('h2');
-      groupTitle.className = 'group-title';
-      groupTitle.textContent = groupName;
-      groupBox.appendChild(groupTitle);
-
-      const section = document.createElement('section');
-      section.classList.add('artist-section');
-
-      const row = document.createElement('div');
-      row.classList.add('albums-row');
-
-      albums.forEach(album => {
-        const card = document.createElement('article');
-        card.className = 'album-card';
-
-        card.onclick = () => {
-          location.href = \`album_dynamic.html?album=\${encodeURIComponent(album.id)}\`;
-        };
-
-        const img = document.createElement('img');
-        img.className = 'album-cover';
-        img.src = album.image || 'https://via.placeholder.com/300x300.png?text=Album+Cover';
-
-        const info = document.createElement('div');
-        info.className = 'album-info';
-
-        const title = document.createElement('h3');
-        title.className = 'album-title';
-        title.textContent = album.title;
-
-        const year = document.createElement('p');
-        year.className = 'album-year';
-        year.textContent = album.year || '';
-
-        info.appendChild(title);
-        info.appendChild(year);
-        card.appendChild(img);
-        card.appendChild(info);
-        row.appendChild(card);
-      });
-
-      section.appendChild(row);
-      groupBox.appendChild(section);
-      albumContainer.appendChild(groupBox);
-    }
-
-    if (isDev) {
-      const addBtn = document.createElement('button');
-      addBtn.textContent = '+ Add Album';
-      addBtn.className = 'btn';
-      addBtn.onclick = async () => {
-        const id = prompt('Album ID (no spaces):');
-        const title = prompt('Album Title:');
-        const artist = prompt('Artist:');
-        const year = prompt('Year:');
-        const image = prompt('Image URL:');
-        const group = prompt('Group:');
-
-        const res = await fetch('/api/album/' + id, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            password,
-            album: { id, title, artist, year, image, group }
-          })
-        });
-
-        if (res.ok) {
-          alert('Album added!');
-          loadAlbums();
-        } else {
-          alert('Failed to save.');
-        }
-      };
-      document.body.appendChild(addBtn);
-    }
-  }
-
-  loadAlbums();
 </script>
-
 </body>
 </html>
