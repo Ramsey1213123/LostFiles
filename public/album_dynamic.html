@@ -1,130 +1,206 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Edit, Save } from 'lucide-react';
+import { toast } from 'sonner';
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Album</title>
-  <style>
-    body {
-      background: #0a0a0a;
-      color: #fff;
-      font-family: sans-serif;
-      margin: 0;
-      padding: 2rem;
-    }
-    .album-wrapper {
-      max-width: 800px;
-      margin: auto;
-    }
-    .album-cover {
-      width: 300px;
-      height: 300px;
-      object-fit: cover;
-      border-radius: 12px;
-    }
-    .album-info {
-      margin-top: 1rem;
-    }
-    .btn {
-      background: #f9e79f;
-      color: #000;
-      font-weight: bold;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      margin-top: 1rem;
-    }
-  </style>
-</head>
-<body>
-  <div class="album-wrapper">
-    <h1 class="album-title" contenteditable="false">Loading...</h1>
-    <h2 class="album-artist" contenteditable="false"></h2>
-    <img class="album-cover" src="" alt="Album Cover" />
-    <div class="album-info">
-      <p><strong>Year:</strong> <span class="album-year"></span></p>
-    </div>
-  </div>
+interface Album {
+  id: string;
+  title: string;
+  artist: string;
+  year: number;
+  image: string;
+  description?: string;
+  tracklist?: string[];
+}
 
-  <script>
-    const params = new URLSearchParams(location.search);
-    const id = params.get('album');
-    let isDev = false;
-    let albumData = {};
+const AlbumDetail = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [album, setAlbum] = useState<Album | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editedAlbum, setEditedAlbum] = useState<Album | null>(null);
 
-    const titleEl = document.querySelector('.album-title');
-    const artistEl = document.querySelector('.album-artist');
-    const yearEl = document.querySelector('.album-year');
-    const coverEl = document.querySelector('.album-cover');
+  useEffect(() => {
+    loadAlbum();
+  }, [id]);
 
-    async function loadAlbum() {
+  const loadAlbum = async () => {
+    try {
       const res = await fetch('/api/album/' + id);
-      if (!res.ok) return alert("Album not found");
-      albumData = await res.json();
-
-      titleEl.textContent = albumData.title;
-      artistEl.textContent = albumData.artist;
-      yearEl.textContent = albumData.year;
-      coverEl.src = albumData.image || 'https://via.placeholder.com/300x300.png?text=No+Cover';
-    }
-
-    function enableEditMode() {
-      isDev = true;
-      titleEl.contentEditable = true;
-      artistEl.contentEditable = true;
-      coverEl.onclick = () => {
-        const newUrl = prompt("Enter new image URL:", coverEl.src);
-        if (newUrl) coverEl.src = newUrl;
+      if (res.ok) {
+        const data = await res.json();
+        setAlbum(data);
+        setEditedAlbum(data);
+      } else {
+        toast.error("Album not found");
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Failed to load album:', error);
+      // Fallback to mock data
+      const mockAlbum: Album = {
+        id: id || '1',
+        title: 'Dark Side of the Moon',
+        artist: 'Pink Floyd',
+        year: 1973,
+        image: 'https://via.placeholder.com/300x300.png?text=Album+Cover',
+        description: 'One of the greatest albums of all time',
       };
+      setAlbum(mockAlbum);
+      setEditedAlbum(mockAlbum);
+    }
+  };
 
-      const yearInput = document.createElement('input');
-      yearInput.value = albumData.year;
-      yearInput.style.marginTop = '0.5rem';
-      yearEl.replaceWith(yearInput);
+  const handleEnterEditMode = () => {
+    const password = prompt("Enter password:");
+    if (password === "admin123") {
+      setIsEditMode(true);
+      toast.success('Edit mode enabled!');
+    } else {
+      toast.error('Wrong password');
+    }
+  };
 
-      const saveBtn = document.createElement('button');
-      saveBtn.className = 'btn';
-      saveBtn.textContent = '💾 Save';
-      saveBtn.onclick = async () => {
-        const updated = {
-          id,
-          title: titleEl.textContent,
-          artist: artistEl.textContent,
-          year: yearInput.value,
-          image: coverEl.src
-        };
+  const handleSave = async () => {
+    if (editedAlbum) {
+      try {
         const res = await fetch('/api/album/' + id, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: 'admin123', album: updated })
+          body: JSON.stringify({ 
+            password: 'admin123', 
+            album: editedAlbum 
+          })
         });
-        if (res.ok) alert("Saved!");
-        else alert("Failed to save.");
-      };
-      document.body.appendChild(saveBtn);
-    }
-
-    // Add visible edit button
-    const editBtn = document.createElement('button');
-    editBtn.textContent = '🛠 Edit Album';
-    editBtn.className = 'btn';
-    editBtn.style.position = 'fixed';
-    editBtn.style.top = '1rem';
-    editBtn.style.right = '1rem';
-    editBtn.onclick = () => {
-      const pwd = prompt("Enter password:");
-      if (pwd === "admin123") {
-        enableEditMode();
-        editBtn.remove();
-      } else {
-        alert("Wrong password.");
+        
+        if (res.ok) {
+          setAlbum(editedAlbum);
+          setIsEditMode(false);
+          toast.success('Album saved successfully!');
+        } else {
+          toast.error('Failed to save');
+        }
+      } catch (error) {
+        console.error('Failed to save album:', error);
+        toast.error('Failed to save');
       }
-    };
-    document.body.appendChild(editBtn);
+    }
+  };
 
-    loadAlbum();
-  </script>
-</body>
-</html>
+  const handleImageClick = () => {
+    if (isEditMode && editedAlbum) {
+      const newUrl = prompt("Enter new image URL:", editedAlbum.image);
+      if (newUrl) {
+        setEditedAlbum({ ...editedAlbum, image: newUrl });
+      }
+    }
+  };
+
+  if (!album) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white" style={{ background: '#0a0a0a' }}>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen text-white p-8" style={{ background: '#0a0a0a' }}>
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/')}
+            className="text-white hover:bg-gray-800"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Albums
+          </Button>
+          
+          <div className="flex gap-4">
+            {isEditMode ? (
+              <>
+                <Button 
+                  onClick={handleSave} 
+                  className="bg-yellow-300 hover:bg-yellow-400 text-black font-bold"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  💾 Save
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsEditMode(false);
+                    setEditedAlbum(album);
+                  }} 
+                  variant="destructive"
+                >
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <Button 
+                onClick={handleEnterEditMode}
+                className="bg-yellow-300 hover:bg-yellow-400 text-black font-bold fixed top-4 right-4"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                🛠 Edit Album
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Album Content */}
+        <div className="album-wrapper">
+          {isEditMode ? (
+            <input
+              value={editedAlbum?.title || ''}
+              onChange={(e) => setEditedAlbum(prev => prev ? {...prev, title: e.target.value} : null)}
+              className="text-4xl font-bold mb-4 bg-transparent border-b border-gray-600 text-white w-full outline-none"
+              style={{ fontSize: '2rem' }}
+            />
+          ) : (
+            <h1 className="text-4xl font-bold mb-4">{album.title}</h1>
+          )}
+          
+          {isEditMode ? (
+            <input
+              value={editedAlbum?.artist || ''}
+              onChange={(e) => setEditedAlbum(prev => prev ? {...prev, artist: e.target.value} : null)}
+              className="text-2xl mb-4 bg-transparent border-b border-gray-600 text-white w-full outline-none"
+            />
+          ) : (
+            <h2 className="text-2xl mb-4">{album.artist}</h2>
+          )}
+          
+          <img 
+            src={isEditMode ? editedAlbum?.image : album.image} 
+            alt="Album Cover"
+            className="w-80 h-80 object-cover rounded-xl mb-4 cursor-pointer"
+            onClick={handleImageClick}
+            style={{ cursor: isEditMode ? 'pointer' : 'default' }}
+          />
+          
+          <div className="album-info">
+            <p className="text-lg">
+              <strong>Year:</strong>{' '}
+              {isEditMode ? (
+                <input
+                  type="number"
+                  value={editedAlbum?.year || ''}
+                  onChange={(e) => setEditedAlbum(prev => prev ? {...prev, year: parseInt(e.target.value)} : null)}
+                  className="bg-transparent border-b border-gray-600 text-white outline-none ml-2"
+                />
+              ) : (
+                <span>{album.year}</span>
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AlbumDetail;
